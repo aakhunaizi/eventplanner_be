@@ -43,10 +43,22 @@ module.exports = (sequelize, DataTypes) => {
       startDate: {
         type: DataTypes.DATEONLY,
         allowNull: true,
+        validate: {
+          validation(value) {
+            if (this.endDate && !value) {
+              throw new Error("Include both a start date and an end date");
+            }
+          },
+        },
       },
       endDate: {
         type: DataTypes.DATEONLY,
         allowNull: true,
+        validation(value) {
+          if (this.endDate && !value) {
+            throw new Error("Include both a start date and an end date");
+          }
+        },
       },
       image: {
         type: DataTypes.STRING,

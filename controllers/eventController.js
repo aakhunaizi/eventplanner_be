@@ -1,4 +1,5 @@
 const { Event } = require("../db/models/");
+const { Op } = require("sequelize");
 
 exports.eventCreate = async (req, res) => {
   try {
@@ -18,18 +19,38 @@ exports.eventCreate = async (req, res) => {
 
 exports.eventList = async (req, res) => {
   try {
-    const events = await Event.findAll({
-      attributes: ["id", "name", "image"],
-
-      order: [
-        ["startDate", "ASC"],
-        ["name", "ASC"],
-      ],
-    });
-    if (events.length > 0) {
-      res.status(200).json(events);
+    if (req.body.date) {
+      const events = await Event.findAll({
+        attributes: ["id", "name", "image"],
+        where: {
+          startDate: {
+            [Op.gt]: req.body.date,
+          },
+        },
+        order: [
+          ["startDate", "ASC"],
+          ["name", "ASC"],
+        ],
+      });
+      if (events.length > 0) {
+        res.status(200).json(events);
+      } else {
+        res.status(404).json({ message: "No Events" });
+      }
     } else {
-      res.status(404).json({ message: "No Events" });
+      const events = await Event.findAll({
+        attributes: ["id", "name", "image"],
+
+        order: [
+          ["startDate", "ASC"],
+          ["name", "ASC"],
+        ],
+      });
+      if (events.length > 0) {
+        res.status(200).json(events);
+      } else {
+        res.status(404).json({ message: "No Events" });
+      }
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -50,12 +71,11 @@ exports.detailedEventList = async (req, res) => {
 };
 
 exports.fullyBooked = async (req, res) => {
-  const { Op } = require("sequelize");
   try {
     const fullEvent = await Event.findAll({
       where: {
         numOfSeats: {
-          [Op.eq]: bookedSeats,
+          [Op.col]: "Event.bookedSeats",
         },
       },
     });
@@ -85,13 +105,12 @@ exports.eventUpdate = async (req, res) => {
 
 exports.eventDelete = async (req, res) => {
   try {
-    const foundEvent = await Event.findByPk(req.params.eventId);
-    if (foundEvent) {
-      await foundEvent.destroy();
+    const eventsId = req.params.eventId.split(",");
+    const foundEvents = await Event.findAll({ where: { id: eventsId } });
+    if (foundEvents) {
+      await Event.destroy({ where: { id: eventsId } });
       res.status(204).end();
-    } else {
-      res.status(404).json({ message: "Event not found" });
-    }
+    } else res.status(404).json({ message: "Event not found" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
